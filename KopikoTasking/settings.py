@@ -36,6 +36,7 @@ CSRF_TRUSTED_ORIGINS = ['https://kopikotasking-api.onrender.com','https://*.127.
 
 INSTALLED_APPS = [
     'rest_framework',
+    'rest_framework.authtoken',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -44,6 +45,15 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'task',
 ]
+
+REST_FRAMEWORK = {
+    # 'DEFAULT_AUTHENTICATION_CLASSES': [
+    #     'rest_framework.authentication.BasicAuthentication',
+    # ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ]
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -54,6 +64,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+#extra
+AUTHENTICATION_BACKENDS = (
+'django.contrib.auth.backends.ModelBackend',
+)
 
 ROOT_URLCONF = 'KopikoTasking.urls'
 
@@ -85,6 +100,8 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+AUTH_USER_MODEL= 'task.CustomUser'
 
 
 # Password validation

@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .import models
-from django.contrib.auth.models import User
 
 class Task(serializers.ModelSerializer):
     class Meta:
@@ -9,35 +8,55 @@ class Task(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model= User
+        model= models.CustomUser
         fields='__all__'
+        
 
-class RegistrationSerializer(serializers.ModelSerializer):
+#this is to inherit later     
+class DynamicFieldsModelSerializer(serializers.ModelSerializer):
+    """
+    A ModelSerializer that takes an additional `fields` argument that
+    controls which fields should be displayed.
+    """
+
+    def __init__(self, *args, **kwargs):
+        # Don't pass the 'fields' arg up to the superclass
+        fields = kwargs.pop('fields', None)
+
+        # Instantiate the superclass normally
+        super().__init__(*args, **kwargs)
+
+        if fields is not None:
+            # Drop any fields that are not specified in the `fields` argument.
+            allowed = set(fields)
+            existing = set(self.fields)
+            for field_name in existing - allowed:
+                self.fields.pop(field_name)
+
+
+class RegistrationSerializer(DynamicFieldsModelSerializer):
     confirm_password= serializers.CharField(required=True)
     class Meta:
-        model= User
+        model= models.CustomUser
         fields= ['username', 'first_name','last_name','email', 'password','confirm_password']
+        exclude= ['last_login', 'superuser_status']
         
-    def save(self):
-        username= self.validated_data['username']
-        first_name= self.validated_data['first_name']
-        last_name= self.validated_data['last_name']
-        email= self.validated_data['email']
-        password= self.validated_data['password']
-        password2 = self.validated_data['confirm_password']
+    def validate(self, attrs):
+        password= attrs.get('password')
+        confirm_password= attrs.get('confirm_password')
         
-        if password != password2:
-            raise serializers.ValidationError({'error':'Password does not match'})
+        if password != confirm_password:
+            raise serializers.ValidationError("Passwords don't match")
         
-        if User.objects.filter(email=email).exists():
-            raise serializers.ValidationError({'error':'Email already exists'})
-        
-        account= User(username=username, first_name=first_name,last_name=last_name,email=email)
-        account.set_password(password)
-        account.is_active=False
-        account.save()
-        print(account)
-        return account
+        return attrs
+    
+    def create(self, validated_data):
+        user= models.CustomUser.objects.create_user(**validated_data) #** ta dictionary theke keyword nite help korbe
+        user.is_active= False
+        user.save()
+        return user
+    
+    
     
 class UserLoginSerializer(serializers.Serializer):
     username = serializers.CharField(required = True)
